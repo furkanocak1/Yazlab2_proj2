@@ -81,7 +81,7 @@ SKAB_FOLDERS = ["valve1", "valve2"]
 SKAB_TARGET = "anomaly"
 
 # BATADAL: eğitim için kullanılacak dosya
-BATADAL_TRAIN_FILE = "BATADAL_dataset02.csv"
+BATADAL_TRAIN_FILE = "BATADAL_dataset04.csv"
 
 # BATADAL: hedef değişken
 BATADAL_TARGET = "ATT_FLAG"
