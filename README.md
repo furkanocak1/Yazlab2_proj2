@@ -87,8 +87,8 @@ Yazlab2_proj2/
 │   ├── data_loader.py      # Veri okuma ve birleştirme
 │   └── preprocessor.py     # Normalizasyon, PCA
 ├── models/                 # Model kodları
-│   ├── deep_learning/      # LSTM, GRU, CNN (arkadaşın kısmı)
-│   └── automata/           # Otomata modeli (benim kısmım)
+│   ├── deep_learning/      # LSTM, GRU, CNN (erenin kısmı)
+│   └── automata/           # Otomata modeli (furkanın kısmı)
 ├── explainability/         # Açıklanabilirlik modülü
 ├── experiments/            # Deney sonuçları
 └── tests/                  # Birim testler
@@ -125,7 +125,7 @@ Yazlab2_proj2/
 | Kişi | Sorumluluk |
 |---|---|
 | **Furkan** | Veri ön işleme (ortak), Otomata modeli, Açıklanabilirlik modülü |
-| **Arkadaş** | Derin öğrenme modelleri (LSTM, GRU/CNN), Deneyler, Grafikler |
+| **Eren** | Derin öğrenme modelleri (LSTM, GRU/CNN), Deneyler, Grafikler |
 
 ---
 
