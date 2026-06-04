@@ -39,10 +39,15 @@ class ProbabilisticAutomata:
     2. SAX  : ortalamaları harflere çevir
     3. Sliding Window : art arda gelen harfleri grupla → pattern
     4. Geçiş olasılıkları : pattern'lar arası geçişleri say, olasılık hesapla
-    5. Anomali tespiti : düşük log olasılıklı yollar anomali
+    5. Anomali tespiti : z-score ile normalize edilmiş skorlar
 
     NOT: Çarpım yerine log toplamı kullanıyoruz.
       log(p1 * p2 * p3) = log(p1) + log(p2) + log(p3)
+
+    NOT: Eşik belirleme için z-score kullanıyoruz.
+      z = (skor - train_ortalama) / train_std
+      z < -2 ise anomali (train'den 2 standart sapma uzak)
+      Bu sayede her veri seti kendi istatistiklerine göre değerlendiriliyor.
     """
 
     def __init__(self, window_size=None, alphabet_size=None):
@@ -50,14 +55,19 @@ class ProbabilisticAutomata:
         self.alphabet_size = alphabet_size or config.ALPHABET_SIZE
 
         # Skorlama için kullanılan pencere boyutu
-        # Yeterince pattern çıkabilmesi için büyük tutuyoruz
         self.score_window = 100
 
         self.breakpoints       = None
         self.known_patterns    = set()
         self.transition_counts = defaultdict(lambda: defaultdict(int))
         self.transition_probs  = {}
-        self.threshold         = None
+
+        # Z-score için train istatistikleri
+        self.train_mean = None
+        self.train_std  = None
+
+        # Z-score eşiği: train'den kaç standart sapma uzaksa anomali
+        self.z_threshold = -2.0
 
     # ==========================================================
     # ADIM 1: PAA
@@ -143,11 +153,15 @@ class ProbabilisticAutomata:
                 for hedef, sayi in hedefler.items()
             }
 
-        # Eşik değeri: tüm train pattern geçişlerinin log olasılıkları
-        train_skorlar = self._hesapla_skorlar(X_pca_train)
-        self.threshold = np.percentile(train_skorlar, 10)
-        print(f"Skor aralığı: [{train_skorlar.min():.4f}, {train_skorlar.max():.4f}]")
-        print(f"Anomali eşik değeri (log): {self.threshold:.4f}")
+        # Train istatistiklerini kaydet (z-score için)
+        train_skorlar    = self._hesapla_skorlar(X_pca_train)
+        self.train_mean  = train_skorlar.mean()
+        self.train_std   = train_skorlar.std() + 1e-10  # sıfıra bölmeyi önle
+
+        print(f"Train skor aralığı : [{train_skorlar.min():.4f}, {train_skorlar.max():.4f}]")
+        print(f"Train ortalama     : {self.train_mean:.4f}")
+        print(f"Train std          : {self.train_std:.4f}")
+        print(f"Z-score eşiği      : {self.z_threshold} (train'den 2 std uzaksa anomali)")
         print("Otomata eğitimi tamamlandı.\n")
 
     # ==========================================================
@@ -204,15 +218,10 @@ class ProbabilisticAutomata:
     def _hesapla_skorlar(self, X_pca: np.ndarray) -> np.ndarray:
         """
         Veri için log path probability skorlarını hesaplar.
-
-        score_window boyutunda kayan pencere kullanır.
-        Pencere yeterince büyük olmalı ki içinde birden fazla
-        pattern çıkabilsin ve geçiş hesaplanabilsin.
-
         Daha düşük skor → daha anormal.
         """
         skorlar = []
-        adim    = self.window_size  # kaydırma miktarı
+        adim    = self.window_size
 
         for i in range(0, len(X_pca) - self.score_window + 1, adim):
             dilim    = X_pca[i : i + self.score_window]
@@ -222,6 +231,18 @@ class ProbabilisticAutomata:
 
         return np.array(skorlar) if skorlar else np.array([0.0])
 
+    def _zscore(self, skorlar: np.ndarray) -> np.ndarray:
+        """
+        Skorları train istatistiklerine göre normalize eder.
+
+        z = (skor - train_ortalama) / train_std
+
+        z = 0   → train ortalamasına eşit, tamamen normal
+        z = -2  → train'den 2 std uzak, anomali sınırında
+        z = -10 → train'den çok uzak, kesinlikle anomali
+        """
+        return (skorlar - self.train_mean) / self.train_std
+
     # ==========================================================
     # TAHMİN
     # ==========================================================
@@ -230,9 +251,12 @@ class ProbabilisticAutomata:
         """
         Veri için anomali tahminleri üretir.
         0 = normal, 1 = anomali
+
+        Z-score < z_threshold ise anomali.
         """
         skorlar   = self._hesapla_skorlar(X_pca)
-        tahminler = (skorlar < self.threshold).astype(int)
+        z_skorlar = self._zscore(skorlar)
+        tahminler = (z_skorlar < self.z_threshold).astype(int)
 
         # Tahminleri orijinal veri uzunluğuna genişlet
         tahminler_tam = np.zeros(len(X_pca), dtype=int)
@@ -248,15 +272,13 @@ class ProbabilisticAutomata:
     def predict_proba(self, X_pca: np.ndarray) -> np.ndarray:
         """
         Her pencere için anomali skoru döndürür (0-1 arası).
-        Düşük log probability → yüksek anomali skoru.
+        Z-score ne kadar düşükse anomali olasılığı o kadar yüksek.
         """
-        skorlar = self._hesapla_skorlar(X_pca)
-        min_s = skorlar.min()
-        max_s = skorlar.max()
-        if max_s == min_s:
-            return np.zeros(len(skorlar))
-        normalize = (skorlar - min_s) / (max_s - min_s)
-        return 1 - normalize
+        skorlar   = self._hesapla_skorlar(X_pca)
+        z_skorlar = self._zscore(skorlar)
+        # z=-2 eşiği referans alarak 0-1'e normalize et
+        anomali_skoru = 1 / (1 + np.exp(z_skorlar + 2))
+        return anomali_skoru
 
 
 # =============================================================
@@ -265,26 +287,40 @@ class ProbabilisticAutomata:
 
 if __name__ == "__main__":
 
-    from preprocessing.data_loader import load_skab
-    from preprocessing.data_splitter import split_skab_kfold
+    from preprocessing.data_loader import load_skab, load_batadal
+    from preprocessing.data_splitter import split_skab_kfold, split_batadal
 
-    print("=" * 50)
+    print("=" * 55)
     print("OTOMATA MODELİ TESTİ - SKAB")
-    print("=" * 50)
+    print("=" * 55)
 
     skab    = load_skab()
     foldlar = split_skab_kfold(skab, n_splits=5)
     fold    = foldlar[0]
 
-    model = ProbabilisticAutomata(
+    model_s = ProbabilisticAutomata(
         window_size=config.WINDOW_SIZE,
         alphabet_size=config.ALPHABET_SIZE
     )
+    model_s.fit(fold["X_pca_train"], fold["y_train"])
+    tahminler_s = model_s.predict(fold["X_pca_test"])
+    print(f"Tahmin anomali oranı : {tahminler_s.mean():.4f}")
+    print(f"Gerçek anomali oranı : {fold['y_test'].mean():.4f}")
 
-    model.fit(fold["X_pca_train"], fold["y_train"])
+    print("\n" + "=" * 55)
+    print("OTOMATA MODELİ TESTİ - BATADAL")
+    print("=" * 55)
 
-    tahminler = model.predict(fold["X_pca_test"])
-    print(f"Tahmin edilen anomali oranı : {tahminler.mean():.4f}")
-    print(f"Gerçek anomali oranı        : {fold['y_test'].mean():.4f}")
-    print(f"Bilinen pattern sayısı      : {len(model.known_patterns)}")
-    print(f"Anomali eşik değeri (log)   : {model.threshold:.4f}")
+    batadal = load_batadal()
+    sonuc   = split_batadal(batadal)
+    X_pca_train, X_pca_test = sonuc[3], sonuc[5]
+    y_train, y_test          = sonuc[6], sonuc[8]
+
+    model_b = ProbabilisticAutomata(
+        window_size=config.WINDOW_SIZE,
+        alphabet_size=config.ALPHABET_SIZE
+    )
+    model_b.fit(X_pca_train, y_train)
+    tahminler_b = model_b.predict(X_pca_test)
+    print(f"Tahmin anomali oranı : {tahminler_b.mean():.4f}")
+    print(f"Gerçek anomali oranı : {y_test.mean():.4f}")
