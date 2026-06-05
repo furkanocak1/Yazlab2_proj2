@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
+import copy
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 import config
@@ -76,7 +77,7 @@ class DLTrainer:
                 
             if val_loss < best_loss:
                 best_loss = val_loss
-                best_model_state = self.model.state_dict().copy()
+                best_model_state = copy.deepcopy(self.model.state_dict())
                 patience_counter = 0
             else:
                 patience_counter += 1
