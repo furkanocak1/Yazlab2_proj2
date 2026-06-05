@@ -88,11 +88,11 @@ class AutomataExplainer:
             onceki_pattern = cozulen
 
         # Karar ve güven skoru
-        anomali_mi = log_toplam < self.model.threshold
+        anomali_mi = log_toplam < self.model.z_threshold
 
         # Güven skoru: log olasılığı 0-1 arasına normalize et
         # Ne kadar düşük log → o kadar yüksek anomali güveni
-        esik        = self.model.threshold
+        esik = self.model.z_threshold
         guvenscore  = self._guvenscore_hesapla(log_toplam, esik)
 
         # Unseen pattern sayısı
