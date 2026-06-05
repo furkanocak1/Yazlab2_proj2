@@ -19,6 +19,8 @@ from preprocessing.data_splitter import split_batadal, split_skab_kfold
 from preprocessing.noise import gaussian_gurultu_ekle, unseen_veri_olustur
 from models.automata.automata import ProbabilisticAutomata
 from models.deep_learning.lstm_model import LSTMModel
+from models.deep_learning.gru_model import GRUModel
+from models.deep_learning.cnn_model import CNNModel
 from models.deep_learning.trainer import DLTrainer
 from experiments.evaluator import Evaluator
 from experiments.visualizer import Visualizer
@@ -33,12 +35,14 @@ def run_experiment_suite(veri_adi, X_train, y_train, X_val, y_val, X_test, y_tes
     
     sonuclar = {
         "Automata": {"Original": [], "Noise": [], "Unseen": []},
-        "LSTM": {"Original": [], "Noise": [], "Unseen": []}
+        "LSTM": {"Original": [], "Noise": [], "Unseen": []},
+        "GRU": {"Original": [], "Noise": [], "Unseen": []},
+        "CNN": {"Original": [], "Noise": [], "Unseen": []}
     }
     
     # Tüm tahminleri saklayacağız (McNemar için)
     # Sadece ilk seed'in tahminlerini alsak yeterli olur karşılaştırma için.
-    tahmin_kayitlari = {"Automata": None, "LSTM": None, "y_true": y_test}
+    tahmin_kayitlari = {"Automata": None, "LSTM": None, "GRU": None, "CNN": None, "y_true": y_test}
     
     # Giriş boyutu (Feature sayısı)
     input_size = X_train.shape[1]
@@ -115,6 +119,60 @@ def run_experiment_suite(veri_adi, X_train, y_train, X_val, y_val, X_test, y_tes
                                             title=f"{veri_adi} - LSTM", 
                                             filename=f"{veri_adi}_cm_lstm.png")
                                             
+        # ---------------------------------------------------------
+        # 3. GRU MODELİ (Derin Öğrenme)
+        # ---------------------------------------------------------
+        print(">> GRU eğitiliyor...")
+        model_gru = GRUModel(input_size=input_size, hidden_size=32, num_layers=1)
+        trainer_gru = DLTrainer(model_gru, lr=0.005)
+        trainer_gru.fit(X_train, y_train, X_val, y_val)
+        
+        # Orijinal Veri
+        tahmin_gru_orig = trainer_gru.predict(X_test)
+        f1_gru_orig = Evaluator.hesapla_metrikler(y_test, tahmin_gru_orig).get('f1', 0)
+        sonuclar["GRU"]["Original"].append(f1_gru_orig)
+        
+        # Gürültülü Veri
+        tahmin_gru_noise = trainer_gru.predict(X_test_noise)
+        sonuclar["GRU"]["Noise"].append(Evaluator.hesapla_metrikler(y_test, tahmin_gru_noise).get('f1', 0))
+        
+        # Unseen Veri
+        tahmin_gru_unseen = trainer_gru.predict(X_test_unseen)
+        sonuclar["GRU"]["Unseen"].append(Evaluator.hesapla_metrikler(y_test, tahmin_gru_unseen).get('f1', 0))
+        
+        if idx == 0:
+            tahmin_kayitlari["GRU"] = tahmin_gru_orig
+            Visualizer.plot_confusion_matrix(y_test, tahmin_gru_orig, 
+                                            title=f"{veri_adi} - GRU", 
+                                            filename=f"{veri_adi}_cm_gru.png")
+
+        # ---------------------------------------------------------
+        # 4. CNN MODELİ (Derin Öğrenme)
+        # ---------------------------------------------------------
+        print(">> CNN eğitiliyor...")
+        model_cnn = CNNModel(input_size=input_size)
+        trainer_cnn = DLTrainer(model_cnn, lr=0.005)
+        trainer_cnn.fit(X_train, y_train, X_val, y_val)
+        
+        # Orijinal Veri
+        tahmin_cnn_orig = trainer_cnn.predict(X_test)
+        f1_cnn_orig = Evaluator.hesapla_metrikler(y_test, tahmin_cnn_orig).get('f1', 0)
+        sonuclar["CNN"]["Original"].append(f1_cnn_orig)
+        
+        # Gürültülü Veri
+        tahmin_cnn_noise = trainer_cnn.predict(X_test_noise)
+        sonuclar["CNN"]["Noise"].append(Evaluator.hesapla_metrikler(y_test, tahmin_cnn_noise).get('f1', 0))
+        
+        # Unseen Veri
+        tahmin_cnn_unseen = trainer_cnn.predict(X_test_unseen)
+        sonuclar["CNN"]["Unseen"].append(Evaluator.hesapla_metrikler(y_test, tahmin_cnn_unseen).get('f1', 0))
+        
+        if idx == 0:
+            tahmin_kayitlari["CNN"] = tahmin_cnn_orig
+            Visualizer.plot_confusion_matrix(y_test, tahmin_cnn_orig, 
+                                            title=f"{veri_adi} - CNN", 
+                                            filename=f"{veri_adi}_cm_cnn.png")
+                                            
     # =========================================================
     # İSTATİSTİKSEL KARŞILAŞTIRMA (İlk seed üzerinden)
     # =========================================================
@@ -129,7 +187,7 @@ def run_experiment_suite(veri_adi, X_train, y_train, X_val, y_val, X_test, y_tes
     print("\n" + "="*50)
     print(f"[{veri_adi}] DENEY SONUÇLARI (5 Seed Ortalaması)")
     print("="*50)
-    for model_name in ["Automata", "LSTM"]:
+    for model_name in ["Automata", "LSTM", "GRU", "CNN"]:
         print(f"\n{model_name} Modeli (F1 Skorları):")
         for senaryo in ["Original", "Noise", "Unseen"]:
             skorlar = sonuclar[model_name][senaryo]
