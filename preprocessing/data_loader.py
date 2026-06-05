@@ -50,7 +50,7 @@ def load_skab() -> pd.DataFrame:
             df["source_file"]  = dosya_adi    # örn: 1.csv
 
             tum_dosyalar.append(df)
-            print(f"Yüklendi: {klasor_adi}/{dosya_adi} → {len(df)} satır")
+            print(f"Yüklendi: {klasor_adi}/{dosya_adi} -> {len(df)} satır")
 
     if len(tum_dosyalar) == 0:
         raise FileNotFoundError("Hiç SKAB verisi yüklenemedi. Klasör yollarını kontrol et.")
