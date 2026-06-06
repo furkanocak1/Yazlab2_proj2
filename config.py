@@ -59,6 +59,11 @@ EPOCH_LIMIT  = 50   # maksimum eğitim turu
 BATCH_SIZE   = 32   # her adımda kaç örnek işleniyor
 PATIENCE     = 5    # doğrulama kaybı iyileşmezse kaç tur bekle (early stopping)
 
+# DL Model Kapasite Parametreleri (Merkezi kontrol)
+# Normal mod için büyük değerler, hızlı test için argümanla ezilecek
+DL_HIDDEN_SIZE = 64
+DL_NUM_LAYERS  = 2
+
 # -------------------------------------------------------------
 # GÜRÜLTÜ (GAUSSIAN NOISE) PARAMETRELERİ
 # Gürültü deneyi için veriye eklenen gürültü miktarı

@@ -91,9 +91,9 @@ def run_experiment_suite(veri_adi, X_train, y_train, X_val, y_val, X_test, y_tes
         # ---------------------------------------------------------
         # 2. LSTM MODELİ (Derin Öğrenme)
         # ---------------------------------------------------------
-        # Uyarı: Hızlı test için num_layers ve hidden_size küçük tutuldu.
+        # Derin öğrenme kapasiteleri config'den okunuyor (argparse ile ezilebilir)
         print(">> LSTM eğitiliyor...")
-        model_lstm = LSTMModel(input_size=input_size, hidden_size=32, num_layers=1)
+        model_lstm = LSTMModel(input_size=input_size, hidden_size=config.DL_HIDDEN_SIZE, num_layers=config.DL_NUM_LAYERS)
         trainer = DLTrainer(model_lstm, lr=0.005)
         trainer.fit(X_train, y_train, X_val, y_val)
         
@@ -123,7 +123,7 @@ def run_experiment_suite(veri_adi, X_train, y_train, X_val, y_val, X_test, y_tes
         # 3. GRU MODELİ (Derin Öğrenme)
         # ---------------------------------------------------------
         print(">> GRU eğitiliyor...")
-        model_gru = GRUModel(input_size=input_size, hidden_size=32, num_layers=1)
+        model_gru = GRUModel(input_size=input_size, hidden_size=config.DL_HIDDEN_SIZE, num_layers=config.DL_NUM_LAYERS)
         trainer_gru = DLTrainer(model_gru, lr=0.005)
         trainer_gru.fit(X_train, y_train, X_val, y_val)
         
@@ -200,6 +200,20 @@ def run_experiment_suite(veri_adi, X_train, y_train, X_val, y_val, X_test, y_tes
     
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Zaman Serisi Anomali Tespiti - Deney Çalıştırıcı")
+    parser.add_argument("--fast", action="store_true", help="Hızlı test modu (Tek fold, küçük ağ)")
+    args = parser.parse_args()
+
+    if args.fast:
+        print("[!] DİKKAT: HIZLI TEST MODU (--fast) AKTİF.")
+        print("[!] DL modelleri için küçük kapasite ve SKAB için sadece 1. fold kullanılacak.\n")
+        config.DL_HIDDEN_SIZE = 32
+        config.DL_NUM_LAYERS = 1
+    else:
+        print("[*] NORMAL MOD (TAM DENEY) AKTİF.")
+        print("[*] DL modelleri için tam kapasite ve SKAB için tüm (5) foldlar çalıştırılacak.\n")
+
     # Sonuçların temiz görünmesi için uyarıları kapatıyoruz
     import warnings
     warnings.filterwarnings('ignore')
@@ -225,20 +239,22 @@ if __name__ == "__main__":
     # ---------------------------------------------------------
     # 2. SKAB Deneyleri
     # ---------------------------------------------------------
-    # Not: SKAB için 5 fold var. Süreden tasarruf etmek adına
-    # sadece ilk fold üzerinde deney yapıyoruz. Tam sonuçlar için
-    # döngüye alınabilir.
     skab = load_skab()
-    foldlar = split_skab_kfold(skab, n_splits=5)
-    f1 = foldlar[0]
+    n_splits = 5
+    foldlar = split_skab_kfold(skab, n_splits=n_splits)
     
-    run_experiment_suite(
-        veri_adi="SKAB_Fold1",
-        X_train=f1["X_train"], y_train=f1["y_train"],
-        X_val=f1["X_val"],     y_val=f1["y_val"],
-        X_test=f1["X_test"],   y_test=f1["y_test"],
-        X_pca_train=f1["X_pca_train"], X_pca_val=f1["X_pca_val"], X_pca_test=f1["X_pca_test"]
-    )
+    # Hızlı modda sadece ilk fold çalışır, normal modda hepsi çalışır
+    kac_fold_calisacak = 1 if args.fast else n_splits
+    
+    for i in range(kac_fold_calisacak):
+        fold = foldlar[i]
+        run_experiment_suite(
+            veri_adi=f"SKAB_Fold{i+1}",
+            X_train=fold["X_train"], y_train=fold["y_train"],
+            X_val=fold["X_val"],     y_val=fold["y_val"],
+            X_test=fold["X_test"],   y_test=fold["y_test"],
+            X_pca_train=fold["X_pca_train"], X_pca_val=fold["X_pca_val"], X_pca_test=fold["X_pca_test"]
+        )
     
     print("\nTüm deneyler başarıyla tamamlandı!")
     print("Grafikler (Confusion Matrix, Heatmap) 'experiments/results' klasörüne kaydedildi.")

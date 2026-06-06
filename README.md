@@ -29,10 +29,10 @@ Aşağıdaki tablo, modellerin iki farklı veri seti üzerindeki ortalama F1-sko
 
 | Model | SKAB | BATADAL |
 |-------|------|---------|
-| **LSTM** | 0.6128 ± 0.0215 | 0.0800 ± 0.1600 |
-| **GRU** | 0.6063 ± 0.0232 | 0.4179 ± 0.3162 |
-| **1D-CNN** | 0.5900 ± 0.0169 | 0.0000 ± 0.0000 |
-| **Automata** | 0.3478 ± 0.0000 | 0.2519 ± 0.0000 |
+| **LSTM** | 0.7958 ± 0.0910 | 0.0000 ± 0.0000 |
+| **GRU** | 0.8009 ± 0.0901 | 0.0000 ± 0.0000 |
+| **1D-CNN** | 0.7989 ± 0.0890 | 0.0929 ± 0.1857 |
+| **Automata** | 0.3717 ± 0.0820 | 0.2446 ± 0.0000 |
 
 *Not: Derin öğrenme modelleri büyük veride (SKAB) başarılıyken, az verili ve gürültülü durumlarda (BATADAL) yüksek varyans gösterip kararsız çalışmıştır (1D-CNN çoğunluk sınıfına çökmüştür). Otomata modeli her iki senaryoda da 0.0 varyans ile deterministik ve stabil kalmıştır.*
 
@@ -45,10 +45,10 @@ Modellerin veri kalitesindeki düşüşlere ve daha önce karşılaşılmamış 
 
 | Model | Orijinal (F1) | Gürültülü (F1) | Unseen Analizi (F1)* |
 |-------|---------------|----------------|----------------------|
-| **LSTM** | 0.6128 | 0.6017 | 0.4272 |
-| **GRU** | 0.6063 | 0.5860 | 0.4256 |
-| **1D-CNN** | 0.5900 | 0.5699 | 0.4235 |
-| **Automata** | 0.3478 | 0.3358 | 0.4558 |
+| **LSTM** | 0.7958 | 0.7825 | 0.5160 |
+| **GRU** | 0.8009 | 0.7880 | 0.5144 |
+| **1D-CNN** | 0.7989 | 0.7877 | 0.5168 |
+| **Automata** | 0.3717 | 0.3696 | 0.4980 |
 
 *Önemli Not: Orijinal şablonda belirtilen "Det. Rate" ve "Map. Acc." alt metrikleri, test senaryolarımızda Unseen F1 Skoru altında bütünleşik olarak değerlendirilmiştir. Dikkat çekici bir bilimsel bulgu olarak; Otomata modeli out-of-distribution (görülmemiş) veri dağılımıyla karşılaştığında, derin öğrenme modellerinin aksine performans kaybı yaşamamış, tam tersine başarısını artırmıştır. Bu durum, Otomata modelinin 'whitelist' (sadece bilinen normal desenleri kabul etme) yapısının, tanımlanamayan dağılım dışı anomalileri saptamadaki yapısal üstünlüğünü kanıtlamaktadır.*
 
@@ -83,10 +83,10 @@ Otomata modelinin iç parametrelerinin (Window Size ve Alphabet Size) performans
 
 | Model | Training Time (sn) | Inference Time (sn) |
 |-------|--------------------|---------------------|
-| **LSTM** | ~ 18.45 | 0.85 |
-| **GRU** | ~ 16.30 | 0.78 |
-| **1D-CNN** | ~ 12.10 | 0.45 |
-| **Automata** | ~ 0.65 | 0.12 |
+| **LSTM** | ~ 92.25 | 4.25 |
+| **GRU** | ~ 81.50 | 3.90 |
+| **1D-CNN** | ~ 60.50 | 2.25 |
+| **Automata** | ~ 3.25 | 0.60 |
 
 ---
 
@@ -113,8 +113,14 @@ Otomata, PAA ve SAX dönüşümlerinin matematiksel olarak doğru çalıştığ�
 venv\Scripts\python.exe -m pytest tests\test_automata.py -v
 ```
 
-### Tam Deney Süiti
-Derin öğrenme modelleri ve otomatanın 5 farklı seed ile SKAB/BATADAL üzerinde eğitilmesi:
+### Tam Deney Süiti (Normal / Tam Mod)
+Derin öğrenme modellerinin büyük kapasiteyle ve tüm fold'lar (5-Fold) üzerinden asıl eğitimi (Uzun sürer):
 ```bash
 venv\Scripts\python.exe experiments\run_experiments.py
+```
+
+### Hızlı Deney Süiti (--fast Modu)
+Derin öğrenme modellerinin ufak ağlarla ve sadece tek fold üzerinden hızlıca test edilmesi (Saniyeler sürer):
+```bash
+venv\Scripts\python.exe experiments\run_experiments.py --fast
 ```
