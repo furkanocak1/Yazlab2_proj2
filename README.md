@@ -11,6 +11,17 @@ Bu proje iki farklı yaklaşımla anomali tespiti yapıyor:
 
 İki yaklaşımı SKAB ve BATADAL veri setleri üzerinde karşılaştırıyoruz.
 
+## 🛠 Kullanılan Teknolojiler ve Kütüphaneler
+Projenin geliştirilmesinde, veri ön işleme aşamasından model eğitimine ve test süreçlerine kadar aşağıdaki temel araçlar kullanılmıştır:
+- **Python 3.10+**: Ana programlama dili.
+- **PyTorch (`torch`)**: Derin öğrenme (LSTM, GRU, 1D-CNN) modellerinin inşası ve eğitimi.
+- **Scikit-Learn (`scikit-learn`)**: PCA (boyut indirgeme), StandardScaler (normalizasyon), GroupKFold çapraz doğrulama ve F1-Skoru gibi değerlendirme metrikleri.
+- **Pandas & NumPy**: Zaman serisi verilerinin yüklenmesi (DataFrame), manipülasyonu ve matris işlemleri.
+- **Levenshtein (`Levenshtein`)**: Automata modelinde hiç görülmemiş (Unseen) desenlerin bilinen desenlerle olan uzaklık ölçümü.
+- **Statsmodels (`statsmodels`)**: Modellerin başarısı arasındaki farkın istatistiksel anlamlılığını ölçmek için McNemar Testi.
+- **Matplotlib & Seaborn**: Karışıklık matrisi (Confusion Matrix) ve ısı haritalarının görselleştirilmesi.
+- **Pytest (`pytest`)**: Proje bütünlüğünü ve yeni eklenen matematiksel formüllerin (Laplace Smoothing) güvenilirliğini sağlamak için Birim Testleri (Unit Tests).
+
 ---
 
 # 📊 Proje Raporu ve Deney Sonuçları

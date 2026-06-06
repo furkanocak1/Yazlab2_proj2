@@ -145,27 +145,34 @@ class TestGecisOlasiliklari(unittest.TestCase):
 
     def setUp(self):
         self.model = ProbabilisticAutomata(window_size=4, alphabet_size=3)
-        # Elle geçiş olasılıkları ayarla
-        self.model.transition_probs = {
-            "aaaa": {"bbbb": 0.7, "cccc": 0.3},
-            "bbbb": {"cccc": 1.0}
-        }
         self.model.known_patterns = {"aaaa", "bbbb", "cccc"}
+        self.model.vocab_size = 3
+        self.model.alpha = 0.1
+        
+        # Laplace Smoothing ile uyumlu veri setini oluştur
+        self.model.transition_counts["aaaa"]["bbbb"] = 7
+        self.model.transition_counts["aaaa"]["cccc"] = 3
+        self.model.transition_totals["aaaa"] = 10
+        
+        self.model.transition_counts["bbbb"]["cccc"] = 10
+        self.model.transition_totals["bbbb"] = 10
 
     def test_bilinen_gecis(self):
-        """Bilinen geçişin olasılığı doğru olmalı."""
+        """Bilinen geçişin olasılığı Laplace ile doğru hesaplanmalı."""
         olasilik = self.model.gecis_olasiligi("aaaa", "bbbb")
-        self.assertAlmostEqual(olasilik, 0.7)
+        # Beklenen: (7 + 0.1) / (10 + 0.1 * 3) = 7.1 / 10.3
+        self.assertAlmostEqual(olasilik, 7.1 / 10.3)
 
     def test_bilinmeyen_gecis(self):
-        """Bilinmeyen geçiş smoothing değeri döndürmeli."""
+        """Bilinmeyen geçiş Laplace smoothing değeri döndürmeli."""
         olasilik = self.model.gecis_olasiligi("aaaa", "aaaa")
-        self.assertEqual(olasilik, 1e-6)
+        # Beklenen: (0 + 0.1) / (10 + 0.1 * 3) = 0.1 / 10.3
+        self.assertAlmostEqual(olasilik, 0.1 / 10.3)
 
     def test_bilinmeyen_kaynak(self):
-        """Bilinmeyen kaynak smoothing değeri döndürmeli."""
+        """Bilinmeyen kaynak 1.0 / Vocab Size değeri döndürmeli."""
         olasilik = self.model.gecis_olasiligi("xxxx", "aaaa")
-        self.assertEqual(olasilik, 1e-6)
+        self.assertAlmostEqual(olasilik, 1.0 / 3.0)
 
     def test_log_path_probability(self):
         """Log path probability negatif olmalı."""
@@ -208,7 +215,7 @@ class TestUnseen(unittest.TestCase):
         """Unseen geçiş için smoothing uygulanmalı, sıfır olmamalı."""
         olasilik = self.model.gecis_olasiligi("zzzz", "yyyy")
         self.assertGreater(olasilik, 0)
-        self.assertEqual(olasilik, 1e-6)
+        self.assertLess(olasilik, 1.0)
 
     def test_predict_calisir(self):
         """Unseen içeren test verisi için predict çalışmalı."""
