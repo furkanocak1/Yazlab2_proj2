@@ -29,12 +29,12 @@ Aşağıdaki tablo, modellerin iki farklı veri seti üzerindeki ortalama F1-sko
 
 | Model | SKAB | BATADAL |
 |-------|------|---------|
-| **LSTM** | 0.7958 ± 0.0910 | 0.0000 ± 0.0000 |
-| **GRU** | 0.8009 ± 0.0901 | 0.0000 ± 0.0000 |
-| **1D-CNN** | 0.7989 ± 0.0890 | 0.0929 ± 0.1857 |
-| **Automata** | 0.3717 ± 0.0820 | 0.2446 ± 0.0000 |
+| **LSTM** | 0.7958 ± 0.0134 | 0.0000 ± 0.0000 |
+| **GRU** | 0.8009 ± 0.0055 | 0.0000 ± 0.0000 |
+| **1D-CNN** | 0.7989 ± 0.0084 | 0.0929 ± 0.1857 |
+| **Automata** | 0.3717 ± 0.0000 | 0.2446 ± 0.0000 |
 
-*Not: Derin öğrenme modelleri büyük veride (SKAB) başarılıyken, az verili ve gürültülü durumlarda (BATADAL) yüksek varyans gösterip kararsız çalışmıştır (1D-CNN çoğunluk sınıfına çökmüştür). Otomata modeli her iki senaryoda da 0.0 varyans ile deterministik ve stabil kalmıştır.*
+*Not: Derin öğrenme modelleri büyük ve temiz veride (SKAB) başarılıyken, az verili ve gürültülü durumlarda (BATADAL) genellemeyi başaramamış ve hepsi tamamen çökmüştür (F1-skorları 0'a inmiştir). Automata modeli ise her iki senaryoda da rastgelelik içermediği için 0.0 varyans ile deterministik ve stabil kalmıştır.*
 
 ---
 
